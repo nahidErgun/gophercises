@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/nahidErgun/gophercises/gophercises/urlshortenerurlshortener"
-	"github.com/nahidErgun/gophercises/gophercises/urlshortenerurlshortener"
+	"github.com/nahidErgun/gophercises/gophercises/urlshortener"
 	"net/http"
 )
 
