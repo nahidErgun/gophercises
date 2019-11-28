@@ -3,6 +3,7 @@ package urlshortener
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/boltdb/bolt"
 	"gopkg.in/yaml.v2"
 	"net/http"
 )
@@ -41,9 +42,9 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 //
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
-func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
+func YAMLHandler(db *bolt.DB,yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
-	var routes []route
+	var routes []Route
 
 	err := yaml.Unmarshal(yml, &routes)
 
@@ -53,12 +54,17 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 		return nil, err
 	}
 
-	return MapHandler(buildMap(routes), fallback), nil
+	for _,route  :=range routes {
+		SetRoute(db,route)
+
+	}
+
+	return BoltHandler(db, fallback), nil
 }
 
-func JsonHandler(js []byte, fallback http.Handler) (http.HandlerFunc, error) {
+func JsonHandler(db *bolt.DB  ,js []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
-	var routes []route
+	var routes []Route
 	err := json.Unmarshal(js,&routes)
 
 	if err != nil {
@@ -67,16 +73,25 @@ func JsonHandler(js []byte, fallback http.Handler) (http.HandlerFunc, error) {
 		return nil, err
 	}
 	fmt.Println(routes)
+	for  i := 1;  i<= len(routes); i++  {
 
-	return MapHandler(buildMap(routes), fallback), nil
 	}
 
-type route struct {
+	fmt.Println("range of routes")
+	fmt.Println(len(routes))
+	for _,route  :=range routes {
+		SetRoute(db,route)
+
+	}
+	return BoltHandler(db, fallback), nil
+	}
+
+type Route struct {
 	P string `yaml:"path" json:"path"`
 	U string `yaml:"url" json:"url"`
 }
 
-func buildMap(routes []route) map[string]string {
+func buildMap(routes []Route) map[string]string {
 
 	routeMap := make(map[string]string)
 	for _, v := range routes {
@@ -84,4 +99,42 @@ func buildMap(routes []route) map[string]string {
 	}
 
 return routeMap
+}
+
+func SetRoute(db *bolt.DB, route Route) error {
+
+	err := db.Update(func(tx *bolt.Tx) error {
+		err := tx.Bucket([]byte("DB")).Bucket([]byte("ROUTES")).Put([]byte(route.P), []byte(route.U))
+		if err != nil {
+			return fmt.Errorf("could not set url: %v", err)
+		}
+		return nil
+	})
+	fmt.Println("Set Urls : " + route.U)
+
+	return err
+
+
+}
+
+func BoltHandler(db *bolt.DB, fallback http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var url []byte
+		path := r.URL.Path
+		//Check bolt db
+		// Get url from db
+
+		 db.View(func(tx *bolt.Tx) error {
+			url = tx.Bucket([]byte("DB")).Bucket([]byte("ROUTES")).Get([]byte(path))
+			fmt.Printf("Url: %s\n", url)
+			return  nil
+		})
+
+
+		if len(url) > 0 {
+			http.Redirect(w, r, string(url), http.StatusSeeOther)
+		}
+
+		fallback.ServeHTTP(w, r)
+	}
 }
