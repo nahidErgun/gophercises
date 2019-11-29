@@ -18,7 +18,6 @@ type Story struct {
 }
 func main() {
 
-	//tmpl := template.Must(template.ParseFiles("./index.html"))
 	file, err := ioutil.ReadFile("./story.json")
 	fmt.Println(err)
 	jsonMap := make(map[string]Story)
@@ -38,35 +37,8 @@ func main() {
 
 	http.ListenAndServe(":9090", nil)
 	fmt.Println(http.ListenAndServe(":9090", nil))
-
-	/*http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("dddddd")
-		tmpl := template.Must(template.ParseFiles("./index.html"))
-
-		fmt.Println(tmpl)
-
-		tmpl.Execute(w, jsonMap)
-		http.ListenAndServe(":9080", nil)
-	})*/
-
 }
 
-
-
-func defaultMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", hello)
-	return mux
-}
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, )
-}
-
-func response (w http.ResponseWriter,r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("./index.html"))
-
-	tmpl.Execute(w, "")
-}
 
 
 
